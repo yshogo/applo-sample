@@ -1,69 +1,28 @@
 package com.example.shogoyamada.applo_sample_app
 
-import AddReactionToIssueMutation
-import LoginQuery
+import android.arch.lifecycle.ViewModelProviders
+import android.databinding.DataBindingUtil
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
-import com.apollographql.apollo.ApolloCall
-import com.apollographql.apollo.ApolloClient
-import com.apollographql.apollo.api.Response
-import com.apollographql.apollo.exception.ApolloException
-import kotlinx.android.synthetic.main.activity_main.*
-import okhttp3.OkHttpClient
-import type.ReactionContent
+import com.example.shogoyamada.applo_sample_app.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        private const val BASE_URL = "https://api.github.com/graphql"
-        private const val GITHUB_ACCESS_TOKENS = ""
-    }
+    lateinit var viewModel: MainViewModel
+    lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val okHttpClient = OkHttpClient.Builder()
-            .authenticator { _, response ->
-                response.request().newBuilder().addHeader("Authorization", "Bearer $GITHUB_ACCESS_TOKENS")
-                    .build()
-            }.build()
+        viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.viewModel = viewModel
+    }
 
-        val apolloClient = ApolloClient.builder()
-            .serverUrl(BASE_URL)
-            .okHttpClient(okHttpClient)
-            .build()
+    override fun onResume() {
+        super.onResume()
 
-        val query = LoginQuery.builder().build()
-
-        apolloClient.query(query).enqueue(object : ApolloCall.Callback<LoginQuery.Data>() {
-            override fun onFailure(e: ApolloException) {
-                Log.e("エラーが発生しました。", e.toString())
-            }
-
-            override fun onResponse(response: Response<LoginQuery.Data>) {
-                val viewer = response.data()?.viewer()
-                val userLogin = viewer?.login()
-                print(userLogin)
-            }
-        })
-
-        button.setOnClickListener {
-            val mutation = AddReactionToIssueMutation.builder()
-                .subjectId("MDU6SXNzdWU0MDA1ODMwODk=")
-                .content(ReactionContent.THUMBS_DOWN)
-                .build()
-
-            apolloClient.mutate(mutation).enqueue(object : ApolloCall.Callback<AddReactionToIssueMutation.Data>() {
-                override fun onFailure(e: ApolloException) {
-                    print(e.toString())
-                }
-
-                override fun onResponse(response: Response<AddReactionToIssueMutation.Data>) {
-                    print("成功")
-                }
-            })
-        }
+        viewModel.getRepositoryList()
     }
 }
